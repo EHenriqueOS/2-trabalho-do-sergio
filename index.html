@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Gerador de Gráficos do Emmanuel</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body{font-family:sans-serif;max-width:700px;margin:30px auto;text-align:center;}
+  table{margin:0 auto 20px;border-collapse:collapse;width:100%;max-width:600px;}
+  th,td{border:1px solid #ccc;padding:8px 12px;}
+  th{background:#f4f4f4;}
+  input{width:100%;font-size:16px;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;}
+  select,button{margin:10px 5px;padding:10px 15px;font-size:16px;cursor:pointer;}
+  canvas{margin-top:30px;max-width:100%;}
+</style>
+</head>
+<body>
+
+<h1>Gerador de Gráficos do Emmanuel</h1>
+
+<table id="tabelaDados">
+<thead><tr><th>Rótulo</th><th>Valor</th><th>Ações</th></tr></thead>
+<tbody>
+<tr><td><input value="Ponto 1"/></td><td><input type="number" value="10"/></td><td><button onclick="this.closest('tr').remove()">Remover</button></td></tr>
+<tr><td><input value="Ponto 2"/></td><td><input type="number" value="20"/></td><td><button onclick="this.closest('tr').remove()">Remover</button></td></tr>
+</tbody>
+</table>
+
+<button onclick="adicionarLinha()">Adicionar dado</button>
+
+<select id="tipoGrafico">
+  <option value="bar">Barra</option>
+  <option value="line">Linha</option>
+  <option value="pie">Pizza</option>
+  <option value="radar">Radar</option>
+</select>
+
+<button onclick="gerarGrafico()">Gerar Gráfico</button>
+
+<canvas id="meuGrafico" width="600" height="400"></canvas>
+
+<script>
+let grafico;
+function adicionarLinha(){
+  const tbody=document.querySelector('#tabelaDados tbody');
+  const tr=document.createElement('tr');
+  tr.innerHTML='<td><input placeholder="Rótulo"/></td><td><input type="number" placeholder="Valor"/></td><td><button onclick="this.closest(\'tr\').remove()">Remover</button></td>';
+  tbody.appendChild(tr);
+}
+function gerarGrafico(){
+  const trs=document.querySelectorAll('#tabelaDados tbody tr');
+  const labels=[], valores=[];
+  for(const tr of trs){
+    const l=tr.children[0].querySelector('input').value.trim();
+    const v=parseFloat(tr.children[1].querySelector('input').value);
+    if(!l || isNaN(v)){alert('Preencha todos os dados corretamente.');return;}
+    labels.push(l); valores.push(v);
+  }
+  const tipo=document.getElementById('tipoGrafico').value;
+  const ctx=document.getElementById('meuGrafico').getContext('2d');
+  if(grafico) grafico.destroy();
+  let datasets;
+  if(tipo==='pie'){
+    const cores=valores.map((_,i)=>`hsl(${i*360/valores.length},70%,60%)`);
+    datasets=[{data:valores,backgroundColor:cores,borderColor:'#fff',borderWidth:2}];
+  }else if(tipo==='radar'){
+    datasets=[{
+      label:'Valores',data:valores,fill:true,
+      backgroundColor:'rgba(54,162,235,0.4)',borderColor:'rgba(54,162,235,1)',
+      pointBackgroundColor:'rgba(54,162,235,1)',pointBorderColor:'#fff'
+    }];
+  }else{
+    datasets=[{
+      label:'Valores',data:valores,
+      backgroundColor:'rgba(54,162,235,0.7)',borderColor:'rgba(54,162,235,1)',
+      borderWidth:1,fill:tipo==='line'?false:true,tension:tipo==='line'?0.3:0,pointRadius:tipo==='line'?5:0
+    }];
+  }
+  grafico=new Chart(ctx,{type:tipo,data:{labels,datasets},options:{
+    responsive:true,
+    scales:tipo==='pie'?undefined:{y:{beginAtZero:true}},
+    plugins:{legend:{display:true}}
+  }});
+}
+</script>
+
+</body>
+</html>
