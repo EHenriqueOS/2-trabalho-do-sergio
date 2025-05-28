@@ -1,87 +1,120 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="UTF-8" />
 <title>Gerador de Gráficos do Emmanuel</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  body{font-family:sans-serif;max-width:700px;margin:30px auto;text-align:center;}
-  table{margin:0 auto 20px;border-collapse:collapse;width:100%;max-width:600px;}
-  th,td{border:1px solid #ccc;padding:8px 12px;}
-  th{background:#f4f4f4;}
-  input{width:100%;font-size:16px;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;}
-  select,button{margin:10px 5px;padding:10px 15px;font-size:16px;cursor:pointer;}
-  canvas{margin-top:30px;max-width:100%;}
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 600px; margin: 40px auto; padding: 15px;
+    background: #f5f5f5; color: #222;
+  }
+  h2 {
+    text-align: center; margin-bottom: 25px; font-weight: 600; color: #111;
+  }
+  label, select, input, button {
+    font-size: 1rem; margin-bottom: 12px; width: 100%; box-sizing: border-box;
+  }
+  select, input {
+    padding: 14px 12px; border: 1px solid #bbb; border-radius: 4px; background: #fff; color: #222;
+  }
+  .data-row {
+    display: flex; gap: 12px; margin-bottom: 10px; align-items: center; flex-wrap: wrap;
+  }
+  .data-row input.nome-input { flex: 3 1 200px; min-width: 150px; }
+  .data-row input.value-input { flex: 2 1 120px; min-width: 100px; }
+  .data-row button {
+    background: transparent; border: none; color: #888; font-weight: bold;
+    cursor: pointer; font-size: 1.7rem; padding: 0 12px; user-select: none;
+    flex-shrink: 0; min-width: 32px; transition: color 0.2s;
+  }
+  .data-row button:hover { color: #444; }
+  button#addBtn, button#generateBtn {
+    background: #222; color: #eee; border: none; padding: 14px 0; border-radius: 5px;
+    cursor: pointer; font-weight: 600; transition: background-color 0.25s;
+  }
+  button#addBtn:hover, button#generateBtn:hover { background: #444; }
+  canvas {
+    margin-top: 30px; background: #fff; border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 100% !important; height: auto !important;
+  }
 </style>
 </head>
 <body>
 
-<h1>Gerador de Gráficos do Emmanuel</h1>
+<h2>Gerador de Gráficos do Emmanuel</h2>
 
-<table id="tabelaDados">
-<thead><tr><th>Rótulo</th><th>Valor</th><th>Ações</th></tr></thead>
-<tbody>
-<tr><td><input value="Ponto 1"/></td><td><input type="number" value="10"/></td><td><button onclick="this.closest('tr').remove()">Remover</button></td></tr>
-<tr><td><input value="Ponto 2"/></td><td><input type="number" value="20"/></td><td><button onclick="this.closest('tr').remove()">Remover</button></td></tr>
-</tbody>
-</table>
-
-<button onclick="adicionarLinha()">Adicionar dado</button>
-
+<label for="tipoGrafico">Tipo de Gráfico</label>
 <select id="tipoGrafico">
-  <option value="bar">Barra</option>
+  <option value="bar">Barras</option>
   <option value="line">Linha</option>
   <option value="pie">Pizza</option>
-  <option value="radar">Radar</option>
 </select>
 
-<button onclick="gerarGrafico()">Gerar Gráfico</button>
+<div id="dadosContainer">
+  <div class="data-row">
+    <input type="text" placeholder="Nome" class="nome-input" />
+    <input type="number" placeholder="Valor" class="value-input" />
+    <button onclick="this.parentElement.remove()">×</button>
+  </div>
+</div>
 
-<canvas id="meuGrafico" width="600" height="400"></canvas>
+<button id="addBtn" onclick="adicionarLinha()">Adicionar Dados</button>
+<button id="generateBtn" onclick="gerarGrafico()">Gerar Gráfico</button>
+
+<canvas id="meuGrafico"></canvas>
 
 <script>
-let grafico;
-function adicionarLinha(){
-  const tbody=document.querySelector('#tabelaDados tbody');
-  const tr=document.createElement('tr');
-  tr.innerHTML='<td><input placeholder="Rótulo"/></td><td><input type="number" placeholder="Valor"/></td><td><button onclick="this.closest(\'tr\').remove()">Remover</button></td>';
-  tbody.appendChild(tr);
-}
-function gerarGrafico(){
-  const trs=document.querySelectorAll('#tabelaDados tbody tr');
-  const labels=[], valores=[];
-  for(const tr of trs){
-    const l=tr.children[0].querySelector('input').value.trim();
-    const v=parseFloat(tr.children[1].querySelector('input').value);
-    if(!l || isNaN(v)){alert('Preencha todos os dados corretamente.');return;}
-    labels.push(l); valores.push(v);
+  let meuGrafico;
+
+  function adicionarLinha() {
+    const div = document.createElement('div');
+    div.className = 'data-row';
+    div.innerHTML = `
+      <input type="text" placeholder="Nome" class="nome-input" />
+      <input type="number" placeholder="Valor" class="value-input" />
+      <button onclick="this.parentElement.remove()">×</button>
+    `;
+    document.getElementById('dadosContainer').appendChild(div);
   }
-  const tipo=document.getElementById('tipoGrafico').value;
-  const ctx=document.getElementById('meuGrafico').getContext('2d');
-  if(grafico) grafico.destroy();
-  let datasets;
-  if(tipo==='pie'){
-    const cores=valores.map((_,i)=>`hsl(${i*360/valores.length},70%,60%)`);
-    datasets=[{data:valores,backgroundColor:cores,borderColor:'#fff',borderWidth:2}];
-  }else if(tipo==='radar'){
-    datasets=[{
-      label:'Valores',data:valores,fill:true,
-      backgroundColor:'rgba(54,162,235,0.4)',borderColor:'rgba(54,162,235,1)',
-      pointBackgroundColor:'rgba(54,162,235,1)',pointBorderColor:'#fff'
-    }];
-  }else{
-    datasets=[{
-      label:'Valores',data:valores,
-      backgroundColor:'rgba(54,162,235,0.7)',borderColor:'rgba(54,162,235,1)',
-      borderWidth:1,fill:tipo==='line'?false:true,tension:tipo==='line'?0.3:0,pointRadius:tipo==='line'?5:0
-    }];
+
+  function gerarGrafico() {
+    const nomes = [...document.querySelectorAll('.nome-input')].map(i => i.value.trim());
+    const valores = [...document.querySelectorAll('.value-input')].map(i => Number(i.value));
+    if (nomes.some(n => !n) || valores.some(v => isNaN(v))) {
+      alert('Preencha todos os Nomes e Valores corretamente.');
+      return;
+    }
+
+    const tipo = document.getElementById('tipoGrafico').value;
+    const ctx = document.getElementById('meuGrafico').getContext('2d');
+
+    if (meuGrafico) meuGrafico.destroy();
+
+    const cores = valores.map((_, i) => `rgba(50,50,50,${0.4 + 0.15 * (i % 4)})`);
+
+    meuGrafico = new Chart(ctx, {
+      type: tipo,
+      data: {
+        labels: nomes,
+        datasets: [{
+          label: 'Dados',
+          data: valores,
+          backgroundColor: tipo === 'pie' ? cores : 'rgba(50,50,50,0.7)',
+          borderColor: tipo === 'pie' ? '#fff' : 'rgba(50,50,50,1)',
+          borderWidth: 1,
+          fill: tipo === 'line' ? false : true,
+          tension: tipo === 'line' ? 0.3 : 0,
+          pointBackgroundColor: 'rgba(50,50,50,1)'
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: tipo !== 'pie' ? { y: { beginAtZero: true } } : {}
+      }
+    });
   }
-  grafico=new Chart(ctx,{type:tipo,data:{labels,datasets},options:{
-    responsive:true,
-    scales:tipo==='pie'?undefined:{y:{beginAtZero:true}},
-    plugins:{legend:{display:true}}
-  }});
-}
 </script>
 
 </body>
